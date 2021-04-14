@@ -1,5 +1,6 @@
 # zBlackBox-API
 zBlackBox API - модуль для проверки покупателей по базе сайта blackbox.net.ua
+
 Версия дополнения: 1.0.0
 
 
