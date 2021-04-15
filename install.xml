@@ -1,0 +1,1129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>zBlackBox API</name>
+    <code>zBlackBox_API</code>
+	<version>1.0.0</version>
+	<author>Tseka85</author>
+	<link>https://github.com/Tseka85</link>
+	<file path="catalog/controller/checkout/simplecheckout.php">
+		<operation error="skip">
+			<search><![CDATA[$data = array_merge($customInfo, $data);]]></search>
+			<add position="after"><![CDATA[
+				
+        
+		////////////////////////////////////////////////////zBlackBox/////////////////////////////////////////////////////
+		
+		$this->load->language('extension/module/zblackbox');
+		
+		//zblackbox Log
+		$zblackbox_log = new Log('zblackbox.log');
+
+		if($this->config->get('module_zblackbox_status') == 1 && $data['telephone'] != '' && $this->config->get('module_zblackbox_apikey') != ''){        
+			
+			$new_phone = preg_replace('/(38|\(|\)|-|\s)/i', '', $data['telephone']);
+
+			$requestParams = [
+				"id" => 10000,
+				"params" => [
+					"phonenumber" => $new_phone,
+					"api_key"     => $this->config->get('module_zblackbox_apikey'),
+				]
+			];
+
+			$ch = curl_init();
+
+			curl_setopt($ch, CURLOPT_URL, "http://blackbox.net.ua/api/?data=" . json_encode($requestParams));
+			curl_setopt($ch, CURLOPT_HEADER, 0);
+
+			ob_start();
+			$result  = curl_exec( $ch );
+			$response = ob_get_contents();
+			ob_end_clean();
+			$err     = curl_errno( $ch );
+			$errmsg  = curl_error( $ch );
+			$header  = curl_getinfo( $ch );
+
+			curl_close( $ch );
+
+			$zblackbox_result = json_decode($response, true);
+			
+		
+		
+			if(isset($zblackbox_result['success'])){
+				if(isset($zblackbox_result['data'])){
+					$data['comment'] .= $this->language->get('text_phone_number_found_success');
+					$zblackbox_log->write($data['comment']);
+				}
+			}
+			elseif(isset($zblackbox_result['error'])){
+				
+				$zblackbox_log->write($zblackbox_result['error']);
+			}
+
+
+		   
+				
+		}else{
+		
+			$zblackbox_log->write('Ошибка: ' . $this->language->get('error_module_off'));
+			$zblackbox_log->write('Статус модуля '. $this->config->get('module_zblackbox_status'));
+			$zblackbox_log->write('Телефон клиента: ' . $data['telephone']);
+			$zblackbox_log->write('Ключ API: ' . $this->config->get('module_zblackbox_apikey'));
+		
+		}
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+				]]>
+			</add>
+		</operation>
+	</file>
+	<file path="catalog/controller/checkout/confirm.php">
+		<operation error="skip">
+			<search><![CDATA[$order_data['comment'] = $this->session->data['comment'];]]></search>
+			<add position="after"><![CDATA[
+			    
+		$this->load->language('extension/module/zblackbox');
+		
+		//zblackbox Log
+		$zblackbox_log = new Log('zblackbox.log');
+		
+		if($this->config->get('module_zblackbox_status') == 1 && $order_data['telephone'] != '' && $this->config->get('module_zblackbox_apikey') != ''){
+		
+			$new_phone = preg_replace('/(\+38|\(|\)|-|\s)/i', '', $order_data['telephone']);
+	
+			$requestParams = [
+				"id" => 10000,
+				"params" => [
+					"phonenumber" => $new_phone,
+					"api_key"     => $this->config->get('module_zblackbox_apikey'),
+				]
+			];
+
+			$ch = curl_init();
+
+			curl_setopt($ch, CURLOPT_URL, "http://blackbox.net.ua/api/?data=" . json_encode($requestParams));
+			curl_setopt($ch, CURLOPT_HEADER, 0);
+
+			ob_start();
+			$result  = curl_exec( $ch );
+			$response = ob_get_contents();
+			ob_end_clean();
+			$err     = curl_errno( $ch );
+			$errmsg  = curl_error( $ch );
+			$header  = curl_getinfo( $ch );
+
+			curl_close( $ch );
+
+			$zblackbox_result = json_decode($response, true);
+		
+		
+			if(isset($zblackbox_result['success'])){
+				if(isset($zblackbox_result['data'])){
+					$order_data['comment'] .= $this->language->get('text_phone_number_found_success');
+					$zblackbox_log->write($order_data['comment']);
+				}
+			}
+			elseif(isset($zblackbox_result['error'])){
+				
+				$zblackbox_log->write($zblackbox_result['error']);
+			}
+			
+		}else{
+		
+			$zblackbox_log->write('Ошибка: ' . $this->language->get('error_module_off'));
+			$zblackbox_log->write('Статус модуля '. $this->config->get('module_zblackbox_status'));
+			$zblackbox_log->write('Телефон клиента: ' . $data['telephone']);
+			$zblackbox_log->write('Ключ API: ' . $this->config->get('module_zblackbox_apikey'));
+		
+		}
+				]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/controller/sale/order.php">
+		<operation>
+			<search><![CDATA[$this->response->setOutput($this->load->view('sale/order_info', $data));]]></search>
+			<add position="before"><![CDATA[
+				/* START zBLACKBOX */
+				$data['heading_black_base'] = $this->language->get('heading_black_base');
+				$data['text_submit'] = $this->language->get('text_submit');
+				$data['text_check'] = $this->language->get('text_check');
+				$data['text_close'] = $this->language->get('text_close');
+				$data['text_phone_number'] = $this->language->get('text_phone_number');
+				$data['text_lastname'] = $this->language->get('text_lastname');
+				$data['text_firstname'] = $this->language->get('text_firstname');
+				$data['text_novaposhta_cn_number'] = $this->language->get('text_novaposhta_cn_number');
+				$data['text_date'] = $this->language->get('text_date');
+				$data['text_cost'] = $this->language->get('text_cost');
+				$data['text_comment'] = $this->language->get('text_comment');
+				$data['text_comment_zblackbox'] = $this->language->get('text_comment_zblackbox');
+				$data['text_code_error'] = $this->language->get('text_code_error');
+				$data['text_information_phone_number'] = $this->language->get('text_information_phone_number');
+				$data['text_fio_client'] = $this->language->get('text_fio_client');
+				$data['text_client_did_not_take'] = $this->language->get('text_client_did_not_take');
+				$data['text_quntity'] = $this->language->get('text_quntity');
+				$data['text_cargo_not_picked_up'] = $this->language->get('text_cargo_not_picked_up');
+				$data['text_cost_of_delivery'] = $this->language->get('text_cost_of_delivery');
+				$data['text_uah'] = $this->language->get('text_uah');
+				$data['text_comment_score'] = $this->language->get('text_comment_score');
+				$data['text_was_not_found'] = $this->language->get('text_was_not_found');
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="admin/controller/sale/orderpro.php">
+		<operation>
+			<search><![CDATA[$this->response->setOutput($this->load->view('sale/orderpro/order_form', $data));]]></search>
+			<add position="before"><![CDATA[
+				/* START zBLACKBOX */
+				$data['heading_black_base'] = $this->language->get('heading_black_base');
+				$data['text_submit'] = $this->language->get('text_submit');
+				$data['text_check'] = $this->language->get('text_check');
+				$data['text_close'] = $this->language->get('text_close');
+				$data['text_phone_number'] = $this->language->get('text_phone_number');
+				$data['text_lastname'] = $this->language->get('text_lastname');
+				$data['text_firstname'] = $this->language->get('text_firstname');
+				$data['text_novaposhta_cn_number'] = $this->language->get('text_novaposhta_cn_number');
+				$data['text_date'] = $this->language->get('text_date');
+				$data['text_cost'] = $this->language->get('text_cost');
+				$data['text_comment'] = $this->language->get('text_comment');
+				$data['text_comment_zblackbox'] = $this->language->get('text_comment_zblackbox');
+				$data['text_code_error'] = $this->language->get('text_code_error');
+				$data['text_information_phone_number'] = $this->language->get('text_information_phone_number');
+				$data['text_fio_client'] = $this->language->get('text_fio_client');
+				$data['text_client_did_not_take'] = $this->language->get('text_client_did_not_take');
+				$data['text_quntity'] = $this->language->get('text_quntity');
+				$data['text_cargo_not_picked_up'] = $this->language->get('text_cargo_not_picked_up');
+				$data['text_cost_of_delivery'] = $this->language->get('text_cost_of_delivery');
+				$data['text_uah'] = $this->language->get('text_uah');
+				$data['text_comment_score'] = $this->language->get('text_comment_score');
+				$data['text_was_not_found'] = $this->language->get('text_was_not_found');
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="admin/language/ru-ru/sale/order.php">
+		<operation>
+			<search><![CDATA[// Text]]></search>
+			<add position="before"><![CDATA[
+				/* Start zBLACKBOX */
+				$_['heading_black_base'] 	        = 'Черная база покупателей';
+				
+				$_['text_submit'] 			        = 'Внести';
+				$_['text_check'] 		            = 'Проверить';
+				$_['text_close']                    =  'Закрыть';
+				$_['text_phone_number'] 	        = 'Номер телефона: ';
+				$_['text_lastname'] 		        = 'Фамилия: ';
+				$_['text_firstname']                = 'Имя: ';
+				$_['text_novaposhta_cn_number']     = 'Новая Почта ТТН: ';
+				$_['text_date']                     = 'Дата: ';
+				$_['text_cost']                     = 'Убытки: ';
+				$_['text_comment']                  = 'Комментарий: ';
+				$_['text_comment_zblackbox']         = 'Клиент не забрал груз. Отправитель понес убытки за транспортировку. ';
+				$_['text_code_error']               = 'Код ошибки: ';
+				$_['text_information_phone_number'] = 'Информация по телефоному номеру: ';
+				
+				$_['text_fio_client']               = 'ФИО получателя груза: ';
+				$_['text_client_did_not_take']      = 'Покупатель не забрал заказ наложкой ';
+				$_['text_quntity']                  = ' раз:';
+				$_['text_cargo_not_picked_up']      = ' - груз не забран.';
+				$_['text_cost_of_delivery']         = 'Стоимость доставки: ';
+				$_['text_uah']                      = ' грн.';
+				$_['text_comment_score']            = 'Комментарий магазина: ';
+				$_['text_was_not_found']            = 'Покупатель не найден в базе!';
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="admin/language/uk-ua/sale/order.php">
+		<operation>
+			<search><![CDATA[// Text]]></search>
+			<add position="before"><![CDATA[
+				/* Start zBLACKBOX */
+				$_['heading_black_base'] 	= 'Чорна база покупців';
+
+				$_['text_submit'] 			= 'Внести';
+				$_['text_check'] 		    = 'Провірити';
+				$_['text_close']            = 'Закрити';
+				$_['text_phone_number'] 	= 'Номер телефона: ';
+				$_['text_lastname'] 		= 'Призвище:';
+				$_['text_firstname']  	    = "Ім`я: ";
+				$_['text_novaposhta_cn_number'] = 'Нова Пошта ТТН: ';
+				$_['text_date']             = 'Дата: ';
+				$_['text_cost']             = 'Збитки: ';
+				$_['text_comment']          = 'Коментар: ';
+				$_['text_comment_zblackbox'] = 'Клієнт не забрав вантаж. Відправник зазнав збитків за транспортування. ';
+				$_['text_code_error']       = 'Код помилки: ';
+				$_['text_information_phone_number'] = 'Інформація по номеру телефона: ';
+				
+				$_['text_fio_client']               = 'ПІБ одержувача вантажу: ';
+				$_['text_client_did_not_take']      = 'Покупець не забрав замовлення наложкой ';
+				$_['text_quntity']                  = ' раз:';
+				$_['text_cargo_not_picked_up']      = ' - вантаж не забраний.';
+				$_['text_cost_of_delivery']         = 'Вартість доставки: ';
+				$_['text_uah']                      = ' грн.';
+				$_['text_comment_score']            = 'Коментар магазину: ';
+				$_['text_was_not_found']            = 'Покупець не знайдений в базі!';
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="admin/language/ru-ru/sale/orderpro.php">
+		<operation>
+			<search><![CDATA[// buttons]]></search>
+			<add position="before"><![CDATA[
+				/* Start zBLACKBOX */
+				$_['heading_black_base'] 	        = 'Черная база покупателей';
+				
+				$_['text_submit'] 			        = 'Внести';
+				$_['text_check'] 		            = 'Проверить';
+				$_['text_close']                    =  'Закрыть';
+				$_['text_phone_number'] 	        = 'Номер телефона: ';
+				$_['text_lastname'] 		        = 'Фамилия: ';
+				$_['text_firstname']                = 'Имя: ';
+				$_['text_novaposhta_cn_number']     = 'Новая Почта ТТН: ';
+				$_['text_date']                     = 'Дата: ';
+				$_['text_cost']                     = 'Убытки: ';
+				$_['text_comment']                  = 'Комментарий: ';
+				$_['text_comment_zblackbox']         = 'Клиент не забрал груз. Отправитель понес убытки за транспортировку. ';
+				$_['text_code_error']               = 'Код ошибки: ';
+				$_['text_information_phone_number'] = 'Информация по телефоному номеру: ';
+				
+				$_['text_fio_client']               = 'ФИО получателя груза: ';
+				$_['text_client_did_not_take']      = 'Покупатель не забрал заказ наложкой ';
+				$_['text_quntity']                  = ' раз: ';
+				$_['text_cargo_not_picked_up']      = ' - груз не забран.';
+				$_['text_cost_of_delivery']         = 'Стоимость доставки: ';
+				$_['text_uah']                      = ' грн.';
+				$_['text_comment_score']            = 'Комментарий магазина: ';
+				$_['text_was_not_found']            = 'Покупатель не найден в базе!';
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="catalog/language/ru-ru/checkout/simplecheckout.php">
+		<operation>
+			<search><![CDATA[// Text]]></search>
+			<add position="before"><![CDATA[
+				/* Start zBLACKBOX */
+				
+				$_['text_phone_number_found_success'] = ' ТЕЛЕФОН НАЙДЕН В ЧЁРНОМ СПИСКЕ BLACKBOX!!!';
+				$_['error_module_off'] 		          = 'Модуль выключен или не введён ключ API !';
+								
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="catalog/language/uk-ua/checkout/simplecheckout.php">
+		<operation>
+			<search><![CDATA[// Text]]></search>
+			<add position="before"><![CDATA[
+				/* Start zBLACKBOX */
+				
+				$_['text_phone_number_found_success'] = ' ТЕЛЕФОН НАЙДЕН В ЧЁРНОМ СПИСКЕ BLACKBOX!!!';
+				$_['error_module_off'] 		          = 'Модуль выключен или не введён ключ API !';
+								
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="catalog/language/ru-ru/checkout/confirm.php">
+		<operation>
+			<search><![CDATA[// Text]]></search>
+			<add position="before"><![CDATA[
+				/* Start zBLACKBOX */
+				
+				$_['text_phone_number_found_success'] = ' ТЕЛЕФОН НАЙДЕН В ЧЁРНОМ СПИСКЕ BLACKBOX!!!';
+				$_['error_module_off'] 		          = 'Модуль выключен или не введён ключ API !';
+								
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="catalog/language/uk-ua/checkout/confirm.php">
+		<operation>
+			<search><![CDATA[// Text]]></search>
+			<add position="before"><![CDATA[
+				/* Start zBLACKBOX */
+				
+				$_['text_phone_number_found_success'] = ' ТЕЛЕФОН НАЙДЕН В ЧЁРНОМ СПИСКЕ BLACKBOX!!!';
+				$_['error_module_off'] 		          = 'Модуль выключен или не введён ключ API !';
+								
+				/* END zBLACKBOX */
+			]]></add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/order_info.twig">
+		<operation>
+			<search index="0"><![CDATA[<a href="{{ invoice }}"]]></search>
+			<add position="replace"><![CDATA[<button type="button" class="btn btn-info" data-toggle="modal" data-target="#modal-zblackbox" data-whatever="@getbootstrap" style="margin-right: 3px;">zBLACKBOX</button><a href="{{ invoice }}"]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/orderpro/order_form.twig">
+		<operation error="skip">
+			<search index="0"><![CDATA[<div class="buttons">]]></search>
+			<add position="after"><![CDATA[<button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modal-zblackbox" data-whatever="@getbootstrap" style="margin-right: 3px; margin-left: 3px;">zBLACKBOX</button>]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/order_info.twig">
+		<operation error="skip">
+			<search index="0"><![CDATA[<script type="text/javascript"><!--]]></search>
+			<add position="before"><![CDATA[
+				  <div class="modal fade" id="modal-zblackbox" tabindex="-1" role="dialog" aria-labelledby="modal-zblackboxLabel" aria-hidden="true" style="display: none;">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-zblackboxLabel"></h5>
+          <img src="https://blackbox.net.ua/static/images/logo.png" alt="{{heading_black_base}}">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input id="tab1" type="radio" name="tabs" checked>
+          <label id="modal-label-id" for="tab1">{{text_submit}}</label>
+          <input id="tab2" type="radio" name="tabs">
+          <label id="modal-label-id" for="tab2">{{text_check}}</label>
+          <section id="content1">
+            <form>
+              <div class="form-group">
+                <label for="phone_number" class="col-form-label">{{text_phone_number}}</label>
+                <input type="text" class="form-control" id="id_phone_number" value="{{ telephone }}">
+              </div>
+              <div class="form-group">
+                <label for="last_name" class="col-form-label">{{text_lastname}}</label>
+                <input type="text" class="form-control" id="id_last_name" maxlength="32" minlength="3" value={{ lastname }}>
+              </div>
+              <div class="form-group">
+                <label for="first_name" class="col-form-label">{{text_firstname}}</label>
+                <input type="text" class="form-control" id="id_first_name" maxlength="32" minlength="3" value={{ firstname }}>
+              </div>
+              <div class="form-group">
+                <label for="np_track" class="col-form-label">{{text_novaposhta_cn_number}}</label>
+                <input type="text" class="form-control" id="id_np_track" maxlength="15" value={{ novaposhta_cn_number }}>
+              </div>
+              <div class="form-group">
+                <label for="date" class="col-form-label">{{text_date}}</label>
+                <input type="text" class="form-control" id="id_date" value={{ date_added }}>
+              </div>
+              <div class="form-group">
+                <label for="cost" class="col-form-label">{{text_cost}}</label>
+                <input type="text" class="form-control" id="id_cost" value="100 грн.">
+              </div>
+              <div class="form-group">
+                <label for="comment" class="col-form-label">{{text_comment}}</label>
+                <textarea cols="40" class="form-control" id="id_comment" maxlength="255" rows="5">{{text_comment_zblackbox}}{{ store_name }}</textarea>
+              </div>
+            </form>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">{{text_close}}</button>
+              <button type="button" id="id_button_zblackbox" class="btn btn-primary">{{text_submit}}</button>
+            </div>
+          </section>
+          <section id="content2">
+            <form>
+              <div class="form-group">
+                <label for="phone_number" class="col-form-label">{{text_phone_number}}</label>
+                <input type="text" class="form-control" id="id_phone_number2" value="{{ telephone }}">
+              </div>
+              <div class="form-group">
+                <label for="last_name" class="col-form-label">{{text_lastname}}</label>
+                <input type="text" class="form-control" id="id_last_name2" maxlength="32" minlength="3" value={{ lastname }}>
+              </div>
+            </form>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">{{text_close}}</button>
+              <button type="button" id="id_button_zblackbox_check" class="btn btn-primary">{{text_check}}</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+				]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/order_info.twig">
+		<operation error="skip">
+			<search index="0"><![CDATA[<script type="text/javascript"><!--]]></search>
+			<add position="after"><![CDATA[
+				$(document).delegate('#id_button_zblackbox', 'click', function() {
+  var post_data = {phone_number : document.querySelector("#id_phone_number").value,
+    last_name : document.querySelector("#id_last_name").value,
+    first_name : document.querySelector("#id_first_name").value,
+    np_track : document.querySelector("#id_np_track").value,
+    date : document.querySelector("#id_date").value,
+    cost : document.querySelector("#id_cost").value,
+    comment : document.querySelector("#id_comment").value,
+  };
+
+  $.ajax({
+    url: 'index.php?route=extension/module/zblackbox/sendUser&user_token={{ user_token }}',
+    type: 'post',
+    dataType: 'json',
+    data: post_data,
+
+    beforeSend: function() {
+      $('#id_button_zblackbox').button('loading');
+    },
+    complete: function() {
+      $('#id_button_zblackbox').button('reset');
+    },
+
+    success: function(json) {
+
+      $('.alert-dismissible').remove();
+
+      if (json['error']) {
+        $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + json['error'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+      }
+
+      if (json['success']) {
+        $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+      }
+
+    },
+
+    error: function(xhr, ajaxOptions, thrownError) {
+      alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+    }
+
+  });
+});
+
+$(document).delegate('#id_button_zblackbox_check', 'click', function() {
+  var post_data = {phone_number2 : document.querySelector("#id_phone_number2").value,
+    last_name2 : document.querySelector("#id_last_name2").value,
+  };
+
+  $.ajax({
+    url: 'index.php?route=extension/module/zblackbox/userCheck&user_token={{ user_token }}',
+    type: 'post',
+    dataType: 'json',
+    data: post_data,
+
+
+    beforeSend: function() {
+      $('#id_button_zblackbox_check').button('loading');
+    },
+    complete: function() {
+      $('#id_button_zblackbox_check').button('reset');
+    },
+
+    success: function(json) {
+
+        $('.people-info-wrap').remove();
+
+      $('.alert-dismissible').remove();
+
+
+      if (json['error']) {
+
+        if (typeof json['error'] === "object"){
+
+          const keys = Object.keys(json);
+          const data = json[keys[0]];
+          const code = data['code'];
+          const message = data['message'];
+
+          $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i>{{text_code_error}}' + code + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+          $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + message + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+
+        }else {
+
+          $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + json['error'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+
+        }
+
+      }
+
+      if (json['success']) {
+
+
+        if (!(json['success'] == 'Client not found')) {
+
+            const keys = Object.keys(json);
+            const data = json[keys[1]];
+            const fios = data.fios[0];
+            const phone = data.phone_formatted;
+
+            const tracks = data.tracks;
+
+            var quantity = tracks.length;
+
+            if (tracks.length == 1) {
+
+                const city = tracks[0].city;
+                const comment = tracks[0].comment;
+                const cost = tracks[0].cost;
+                const date = tracks[0].date;
+                //const id = tracks.id;
+                const type = tracks[0].type;
+                const warehouse = tracks[0].warehouse;
+
+                $('#modal-zblackbox .modal-footer').prepend('<div class="people-info-wrap"> <div class="people-info row"> <div class="phone col-xs-12"> <strong>{{text_information_phone_number}}' + phone + ' - '+ fios + '</strong> </div> <div class="pseudo-title col-xs-12"> <span>{{text_fio_client}}</span> </div> <div class="pseudo-item col-xs-12">' + fios + '</div>' + '<div class="pseudo-title col-xs-12">' + '<strong>{{text_client_did_not_take}}' + quantity + '{{text_quntity}}</strong></div>' + '<div class="track-item-wrapper">' + '<div class="track-item">' + '<div class="track-item-comment col-xs-12">' + date + '{{text_cargo_not_picked_up}}<div class="track-item-comment">' +  type + ' ' + city + ' ' + warehouse +'<div class="track-item-comment">{{text_cost_of_delivery}}' + '<i>'+ cost + '{{text_uah}}</i>' + '<div class="track-item-comment">{{text_comment_score}}' + '<i>' + comment  + '</i>' + '</div> </div> </div> </div> </div>');
+
+            }else{
+
+                for (var i = 0; i < tracks.length; i++) {
+
+                    const city = tracks[i].city;
+                    const comment = tracks[i].comment;
+                    const cost = tracks[i].cost;
+                    const date = tracks[i].date;
+                    //const id = tracks[i].id;
+                    const type = tracks[i].type;
+                    const warehouse = tracks[i].warehouse;
+
+                    $('#modal-zblackbox .modal-footer').prepend('<div class="people-info-wrap"> <div class="people-info row"> <div class="phone col-xs-12">'  + '<div class="track-item-wrapper">' + '<div class="track-item">' + '<div class="track-item-comment col-xs-12">' + date + '{{text_cargo_not_picked_up}}<div class="track-item-comment">' +  type + ' ' + city + ' ' + warehouse +'<div class="track-item-comment">{{text_cost_of_delivery}}' + '<i>'+ cost + '{{text_uah}}</i>' + '<div class="track-item-comment">{{text_comment_score}}' + '<i>' + comment  + '</i>' + '</div> </div> </div> </div> </div>');
+
+
+                }
+
+                $('#modal-zblackbox .modal-footer').prepend('<div class="people-info-wrap"> <div class="people-info row"> <div class="phone col-xs-12"> <strong>{{text_information_phone_number}}' + phone + ' - '+ fios + '</strong> </div> <div class="pseudo-title col-xs-12"> <span>{{text_fio_client}}' + '</span> </div> <div class="pseudo-item col-xs-12">' + fios + '</div>' + '<div class="pseudo-title col-xs-12">' + '<strong>{{text_client_did_not_take}}' + quantity + '{{text_quntity}}</strong></div></div></div>');
+
+
+            }
+
+
+
+        }else {
+            $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i>{{text_was_not_found}}' + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+
+        }
+			}
+		},
+
+		error: function(xhr, ajaxOptions, thrownError) {
+			alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+		}
+
+	});
+});
+				]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/order_info.twig">
+		<operation error="skip">
+			<search><![CDATA[{{ footer }}]]></search>
+			<add position="before"><![CDATA[
+				<style type="text/css">
+
+  section {
+    display: none;
+    padding: 20px 0 0;
+    border-top: 1px solid #ddd;
+  }
+  #tab1, #tab2 {
+    display: none;
+  }
+
+  #modal-label-id {
+    font: 14px/1 'Open Sans', sans-serif;
+    display: inline-block;
+    margin: 0 0 -1px;
+    padding: 15px 25px;
+    font-weight: 600;
+    text-align: center;
+    color: #bbb;
+    border: 1px solid transparent;
+  }
+
+  #modal-label-id:before {
+    font-family: fontawesome;
+    font-weight: normal;
+    margin-right: 10px;
+  }
+
+  #modal-label-id[for*='1']:before {
+    content: '\f235';
+  }
+
+  #modal-label-id[for*='2']:before {
+    content: '\f002';
+  }
+
+
+  #modal-label-id:hover {
+    color: #888;
+    cursor: pointer;
+  }
+
+  #tab1:checked + #modal-label-id, #tab2:checked + #modal-label-id {
+    color: #555;
+    border: 1px solid #ddd;
+    border-top: 2px solid orange;
+    border-bottom: 1px solid #fff;
+  }
+
+
+
+  #tab1:checked ~ #content1,
+  #tab2:checked ~ #content2 {
+    display: block;
+  }
+
+  @media screen and (max-width: 650px) {
+    #modal-label-id {
+      font-size: 0;
+    }
+
+    #modal-label-id:before {
+      margin: 0;
+      font-size: 18px;
+    }
+  }
+  @media screen and (max-width: 400px) {
+    #modal-label-id {
+      padding: 15px;
+    }
+  }
+
+  .people-info-wrap {
+    border: 1px solid #ee0000;
+    border-radius: 2px;
+    background-color: #fff5f5;
+    padding: 10px;
+    margin-bottom: 10px;
+    text-align: left;
+  }
+
+  .people-info .phone h1 {
+    font-weight: bold;
+    text-transform: none;
+    font-size: 16px;
+    text-align: left;
+  }
+
+  .people-info .pseudo-title {
+    color: #3e3e3e;
+    margin: 5px 0;
+    text-align: left;
+  }
+
+  .people-info .pseudo-item, .people-info .track-item {
+    color: #686868;
+    text-align: left;
+  }
+
+  .track-item-comment {
+    margin-top: 5px;
+    text-align: left;
+  }
+</style>
+				]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/orderpro/order_form.twig">
+		<operation error="skip">
+			<search index="0"><![CDATA[<script type="text/javascript"><!--]]></search>
+			<add position="before"><![CDATA[
+				  <div class="modal fade" id="modal-zblackbox" tabindex="-1" role="dialog" aria-labelledby="modal-zblackboxLabel" aria-hidden="true" style="display: none;">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal-zblackboxLabel"></h5>
+          <img src="https://blackbox.net.ua/static/images/logo.png" alt="{{heading_black_base}}">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input id="tab1" type="radio" name="tabs" checked>
+          <label id="modal-label-id" for="tab1">{{text_submit}} </label>
+          <input id="tab2" type="radio" name="tabs">
+          <label id="modal-label-id" for="tab2">{{text_check}}</label>
+          <section id="content1">
+            <form>
+              <div class="form-group">
+                <label for="phone_number" class="col-form-label">{{text_phone_number}}</label>
+                <input type="text" class="form-control" id="id_phone_number" value="{{ telephone }}">
+              </div>
+              <div class="form-group">
+                <label for="last_name" class="col-form-label">{{text_lastname}}</label>
+                <input type="text" class="form-control" id="id_last_name" maxlength="32" minlength="3" value={{ lastname }}>
+              </div>
+              <div class="form-group">
+                <label for="first_name" class="col-form-label">{{text_firstname}}</label>
+                <input type="text" class="form-control" id="id_first_name" maxlength="32" minlength="3" value={{ firstname }}>
+              </div>
+              <div class="form-group">
+                <label for="np_track" class="col-form-label">{{text_novaposhta_cn_number}}</label>
+                <input type="text" class="form-control" id="id_np_track" maxlength="15" value={{ novaposhta_cn_number }}>
+              </div>
+              <div class="form-group">
+                <label for="date" class="col-form-label">{{text_date}}</label>
+                <input type="text" class="form-control" id="id_date" value={{ date_added }}>
+              </div>
+              <div class="form-group">
+                <label for="cost" class="col-form-label">{{text_cost}}</label>
+                <input type="text" class="form-control" id="id_cost" value="100 грн.">
+              </div>
+              <div class="form-group">
+                <label for="comment" class="col-form-label">{{text_comment}}</label>
+                <textarea cols="40" class="form-control" id="id_comment" maxlength="255" rows="5">{{text_comment_zblackbox}}{{ store_name }}</textarea>
+              </div>
+            </form>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">{{text_close}}</button>
+              <button type="button" id="id_button_zblackbox" class="btn btn-primary">{{text_submit}}</button>
+            </div>
+          </section>
+          <section id="content2">
+            <form>
+              <div class="form-group">
+                <label for="phone_number" class="col-form-label">{{text_phone_number}}</label>
+                <input type="text" class="form-control" id="id_phone_number2" value="{{ telephone }}">
+              </div>
+              <div class="form-group">
+                <label for="last_name" class="col-form-label">{{text_lastname}}</label>
+                <input type="text" class="form-control" id="id_last_name2" maxlength="32" minlength="3" value={{ lastname }}>
+              </div>
+            </form>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">{{text_close}}</button>
+              <button type="button" id="id_button_zblackbox_check" class="btn btn-primary">{{text_check}}</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+				]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/orderpro/order_form.twig">
+		<operation error="skip">
+			<search index="0"><![CDATA[<script type="text/javascript"><!--]]></search>
+			<add position="after"><![CDATA[
+				$(document).delegate('#id_button_zblackbox', 'click', function() {
+  var post_data = {phone_number : document.querySelector("#id_phone_number").value,
+    last_name : document.querySelector("#id_last_name").value,
+    first_name : document.querySelector("#id_first_name").value,
+    np_track : document.querySelector("#id_np_track").value,
+    date : document.querySelector("#id_date").value,
+    cost : document.querySelector("#id_cost").value,
+    comment : document.querySelector("#id_comment").value,
+  };
+
+  $.ajax({
+    url: 'index.php?route=extension/module/zblackbox/sendUser&user_token={{ user_token }}',
+    type: 'post',
+    dataType: 'json',
+    data: post_data,
+
+    beforeSend: function() {
+      $('#id_button_zblackbox').button('loading');
+    },
+    complete: function() {
+      $('#id_button_zblackbox').button('reset');
+    },
+
+    success: function(json) {
+
+      $('.alert-dismissible').remove();
+
+      if (json['error']) {
+        $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + json['error'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+      }
+
+      if (json['success']) {
+        $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+      }
+
+    },
+
+    error: function(xhr, ajaxOptions, thrownError) {
+      alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+    }
+
+  });
+});
+
+$(document).delegate('#id_button_zblackbox_check', 'click', function() {
+  var post_data = {phone_number2 : document.querySelector("#id_phone_number2").value,
+    last_name2 : document.querySelector("#id_last_name2").value,
+  };
+
+  $.ajax({
+    url: 'index.php?route=extension/module/zblackbox/userCheck&user_token={{ user_token }}',
+    type: 'post',
+    dataType: 'json',
+    data: post_data,
+
+
+    beforeSend: function() {
+      $('#id_button_zblackbox_check').button('loading');
+    },
+    complete: function() {
+      $('#id_button_zblackbox_check').button('reset');
+    },
+
+    success: function(json) {
+
+        $('.people-info-wrap').remove();
+
+      $('.alert-dismissible').remove();
+
+
+      if (json['error']) {
+
+        if (typeof json['error'] === "object"){
+
+          const keys = Object.keys(json);
+          const data = json[keys[0]];
+          const code = data['code'];
+          const message = data['message'];
+
+          $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i>{{text_code_error}}' + code + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+          $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + message + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+
+        }else {
+
+          $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> ' + json['error'] + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+
+        }
+
+      }
+
+      if (json['success']) {
+
+
+        if (!(json['success'] == 'Client not found')) {
+
+            const keys = Object.keys(json);
+            const data = json[keys[1]];
+            const fios = data.fios[0];
+            const phone = data.phone_formatted;
+
+            const tracks = data.tracks;
+
+            var quantity = tracks.length;
+
+            if (tracks.length == 1) {
+
+                const city = tracks[0].city;
+                const comment = tracks[0].comment;
+                const cost = tracks[0].cost;
+                const date = tracks[0].date;
+                //const id = tracks.id;
+                const type = tracks[0].type;
+                const warehouse = tracks[0].warehouse;
+
+                $('#modal-zblackbox .modal-footer').prepend('<div class="people-info-wrap"> <div class="people-info row"> <div class="phone col-xs-12"> <strong>{{text_information_phone_number}}' + phone + ' - '+ fios + '</strong> </div> <div class="pseudo-title col-xs-12"> <span>{{text_fio_client}}</span> </div> <div class="pseudo-item col-xs-12">' + fios + '</div>' + '<div class="pseudo-title col-xs-12">' + '<strong>{{text_client_did_not_take}}' + quantity + '{{text_quntity}}</strong></div>' + '<div class="track-item-wrapper">' + '<div class="track-item">' + '<div class="track-item-comment col-xs-12">' + date + '{{text_cargo_not_picked_up}}<div class="track-item-comment">' +  type + ' ' + city + ' ' + warehouse +'<div class="track-item-comment">{{text_cost_of_delivery}}' + '<i>'+ cost + '{{text_uah}}</i>' + '<div class="track-item-comment">{{text_comment_score}}' + '<i>' + comment  + '</i>' + '</div> </div> </div> </div> </div>');
+
+            }else{
+
+                for (var i = 0; i < tracks.length; i++) {
+
+                    const city = tracks[i].city;
+                    const comment = tracks[i].comment;
+                    const cost = tracks[i].cost;
+                    const date = tracks[i].date;
+                    //const id = tracks[i].id;
+                    const type = tracks[i].type;
+                    const warehouse = tracks[i].warehouse;
+
+                    $('#modal-zblackbox .modal-footer').prepend('<div class="people-info-wrap"> <div class="people-info row"> <div class="phone col-xs-12">'  + '<div class="track-item-wrapper">' + '<div class="track-item">' + '<div class="track-item-comment col-xs-12">' + date + '{{text_cargo_not_picked_up}}<div class="track-item-comment">' +  type + ' ' + city + ' ' + warehouse +'<div class="track-item-comment">{{text_cost_of_delivery}}' + '<i>'+ cost + '{{text_uah}}</i>' + '<div class="track-item-comment">{{text_comment_score}}' + '<i>' + comment  + '</i>' + '</div> </div> </div> </div> </div>');
+
+
+                }
+
+                $('#modal-zblackbox .modal-footer').prepend('<div class="people-info-wrap"> <div class="people-info row"> <div class="phone col-xs-12"> <strong>{{text_information_phone_number}}' + phone + ' - '+ fios + '</strong> </div> <div class="pseudo-title col-xs-12"> <span>{{text_fio_client}}' + '</span> </div> <div class="pseudo-item col-xs-12">' + fios + '</div>' + '<div class="pseudo-title col-xs-12">' + '<strong>{{text_client_did_not_take}}' + quantity + '{{text_quntity}}</strong></div></div></div>');
+
+
+            }
+
+
+
+        }else {
+            $('#modal-zblackbox .modal-footer').prepend('<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i>{{text_was_not_found}}' + ' <button type="button" class="close" data-dismiss="alert">&times;</button></div>');
+
+
+        }
+			}
+		},
+
+		error: function(xhr, ajaxOptions, thrownError) {
+			alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+		}
+
+	});
+});
+				]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/orderpro/order_form.twig">
+		<operation error="skip">
+			<search><![CDATA[{{ footer }}]]></search>
+			<add position="before"><![CDATA[
+				<style type="text/css">
+
+  section {
+    display: none;
+    padding: 20px 0 0;
+    border-top: 1px solid #ddd;
+  }
+  #tab1, #tab2 {
+    display: none;
+  }
+
+  #modal-label-id {
+    font: 14px/1 'Open Sans', sans-serif;
+    display: inline-block;
+    margin: 0 0 -1px;
+    padding: 15px 25px;
+    font-weight: 600;
+    text-align: center;
+    color: #bbb;
+    border: 1px solid transparent;
+  }
+
+  #modal-label-id:before {
+    font-family: fontawesome;
+    font-weight: normal;
+    margin-right: 10px;
+  }
+
+  #modal-label-id[for*='1']:before {
+    content: '\f235';
+  }
+
+  #modal-label-id[for*='2']:before {
+    content: '\f002';
+  }
+
+
+  #modal-label-id:hover {
+    color: #888;
+    cursor: pointer;
+  }
+
+  #tab1:checked + #modal-label-id, #tab2:checked + #modal-label-id {
+    color: #555;
+    border: 1px solid #ddd;
+    border-top: 2px solid orange;
+    border-bottom: 1px solid #fff;
+  }
+
+
+
+  #tab1:checked ~ #content1,
+  #tab2:checked ~ #content2 {
+    display: block;
+  }
+
+  @media screen and (max-width: 650px) {
+    #modal-label-id {
+      font-size: 0;
+    }
+
+    #modal-label-id:before {
+      margin: 0;
+      font-size: 18px;
+    }
+  }
+  @media screen and (max-width: 400px) {
+    #modal-label-id {
+      padding: 15px;
+    }
+  }
+
+  .people-info-wrap {
+    border: 1px solid #ee0000;
+    border-radius: 2px;
+    background-color: #fff5f5;
+    padding: 10px;
+    margin-bottom: 10px;
+    text-align: left;
+  }
+
+  .people-info .phone h1 {
+    font-weight: bold;
+    text-transform: none;
+    font-size: 16px;
+    text-align: left;
+  }
+
+  .people-info .pseudo-title {
+    color: #3e3e3e;
+    margin: 5px 0;
+    text-align: left;
+  }
+
+  .people-info .pseudo-item, .people-info .track-item {
+    color: #686868;
+    text-align: left;
+  }
+
+  .track-item-comment {
+    margin-top: 5px;
+    text-align: left;
+  }
+</style>
+				]]>
+			</add>
+		</operation>
+	</file>
+	<file path="admin/controller/sale/order.php">
+			<operation>
+				<search><![CDATA[$data['shipping_method'] = $order_info['shipping_method'];]]></search>
+				<add position="after"><![CDATA[
+			$data['novaposhta_cn_number'] = $order_info['novaposhta_cn_number'];
+				]]></add>
+			</operation>
+	</file>
+	<file path="admin/model/sale/order.php">
+		<operation>
+			<search><![CDATA[$order_query->row['order_id'],]]></search>
+			<add position="after"><![CDATA[
+			'novaposhta_cn_number'                => (isset($order_query->row['novaposhta_cn_number']) ? $order_query->row['novaposhta_cn_number'] : ''),]]>
+							</add>
+		</operation>
+	</file>
+	<file path="admin/view/template/sale/order_info.twig">
+		<operation>
+			<search><![CDATA[<td>{{ text_reward }}</td>]]></search>
+			<add position="before"><![CDATA[
+		  <tr>
+			<td>ТТН Новая почта:</td>
+			<td class="text-right"><a href="https://novaposhta.ua/ru/tracking/?cargo_number={{ novaposhta_cn_number }}" target="_blank">{{ novaposhta_cn_number }}</a></td>
+			<td class="text-center"></td>
+		  </tr>
+			]]></add>
+		</operation>		
+	</file>
+	<file path="admin/controller/sale/orderpro.php">
+		<operation>
+			<search><![CDATA[$data['footer'] = $this->load->controller('common/footer');]]></search>
+			<add position="after"><![CDATA[
+			$this->load->model('sale/order');
+			$order_info = $this->model_sale_order->getOrder($this->request->get['order_id']);
+			$data['novaposhta_cn_number'] = $order_info['novaposhta_cn_number'];
+			$this->load->model('setting/setting');
+			$store_info = $this->model_setting_setting->getSetting('config', $data['store_id']);
+			if ($store_info) {
+				$data['store_name'] = $store_info['config_name'];
+			} else {
+				$data['store_name'] = $this->config->get('config_name');
+			}
+			]]></add>
+		</operation>
+	</file>
+</modification>
