@@ -1,5 +1,5 @@
 # zBlackBox-API
-zBlackBox API - модуль для проверки покупателей по базе сайта blackbox.net.ua
+zBlackBox API - модуль для проверки покупателей по базе сайта blackbox.net.ua для Opencart 3.x
 
 Версия дополнения: 1.0.0
 
